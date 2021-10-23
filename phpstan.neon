@@ -1,0 +1,7 @@
+parameters:
+    excludes_analyse:
+        - vendor/
+    level: max
+    paths:
+        - src/
+        - tests/

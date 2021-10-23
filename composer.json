@@ -1,0 +1,38 @@
+{
+  "name": "rc/statemachine",
+  "type": "library",
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "Rc\\StateMachine\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Rc\\StateMachine\\": "tests/"
+    }
+  },
+  "authors": [
+    {
+      "name": "Ray Chen",
+      "email": "ray@raychen.io"
+    }
+  ],
+  "require-dev": {
+    "phpstan/phpstan-phpunit": "^0.12.22",
+    "phpstan/phpstan": "^0.12.99",
+    "phpunit/phpunit": "^9.5",
+    "psy/psysh": "^0.10.9",
+    "squizlabs/php_codesniffer": "^3.6"
+  },
+  "scripts": {
+    "analyze": "phpstan analyse",
+    "lint": "phpcs",
+    "test": [
+      "@unit",
+      "@analyze",
+      "@lint"
+    ],
+    "unit": "phpunit"
+  }
+}
