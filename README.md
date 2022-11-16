@@ -1,5 +1,5 @@
 # PHP StateMachine
 
-![CI](https://github.com/github/docs/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/half0wl/php-StateMachine/blob/main/.github/workflows/ci.yml/badge.svg)
 
 (WIP)
