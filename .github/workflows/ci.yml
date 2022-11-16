@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  lint-analyze-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v3
+        with:
+          path: /tmp/composer-cache
+          key: ${{ runner.os }}-${{ hashFiles('**/composer.lock') }}
+
+      - name: Install dependencies
+        uses: php-actions/composer@v6
+
+      - name: Lint (PHPCS)
+        continue-on-error: true
+        run: |
+          composer lint
+
+      - name: Static analysis (PHPStan)
+        continue-on-error: true
+        run: |
+          composer analyze
+
+      - name: Run tests (PHPUnit)
+        continue-on-error: true
+        run: |
+          composer unit
