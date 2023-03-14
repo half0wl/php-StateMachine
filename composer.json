@@ -1,7 +1,6 @@
 {
   "name": "halfowl/statemachine",
   "description": "State Machines made safe and easy.",
-  "version": "1.0.0",
   "require": {
     "php": ">=7.4"
   },
