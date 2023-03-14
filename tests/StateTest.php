@@ -32,6 +32,7 @@ class StateTest extends \PHPUnit\Framework\TestCase
     public function testConstructBlockedOnInvalidValues(mixed $value): void
     {
         $this->expectException(TypeError::class);
+        // @phpstan-ignore-next-line Intentional errors
         new State($value);
     }
 
