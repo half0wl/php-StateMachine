@@ -2,15 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Rc\StateMachine;
+namespace Halfowl\StateMachine;
 
 use DomainException;
 use RuntimeException;
 use LengthException;
 
-/**
- * @covers Rc\StateMachine\StateMachine
- */
 class StateMachineTest extends \PHPUnit\Framework\TestCase
 {
     private State $green;

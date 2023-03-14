@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Rc\StateMachine;
+namespace Halfowl\StateMachine;
 
 class StateTransitionTest extends \PHPUnit\Framework\TestCase
 {

@@ -1,15 +1,19 @@
 {
-  "name": "rc/statemachine",
+  "name": "halfowl/statemachine",
+  "description": "State Machines made safe and easy.",
+  "require": {
+    "php": ">=7.4"
+  },
   "type": "library",
   "license": "MIT",
   "autoload": {
     "psr-4": {
-      "Rc\\StateMachine\\": "src/"
+      "Halfowl\\StateMachine\\": "src/"
     }
   },
   "autoload-dev": {
     "psr-4": {
-      "Rc\\StateMachine\\": "tests/"
+      "Halfowl\\StateMachine\\": "tests/"
     }
   },
   "authors": [
