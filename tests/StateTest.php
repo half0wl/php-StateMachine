@@ -73,7 +73,7 @@ class StateTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array<mixed>
      */
-    public function invalidValues()
+    public static function invalidValues()
     {
         return [
             [123,],
