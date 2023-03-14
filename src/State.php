@@ -14,11 +14,6 @@ final class State implements StateInterface
     private string $name;
 
     /**
-     * @var State[]
-     */
-    private array $transitions = [];
-
-    /**
      * Create a new State.
      *
      * @param string $name
@@ -53,33 +48,5 @@ final class State implements StateInterface
     public function __toString()
     {
         return $this->getName();
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function registerTransitions(State ...$states): State
-    {
-        $this->transitions = [...$states];
-        return $this;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function canTransitionTo(State $state): bool
-    {
-        return in_array($state, $this->transitions);
-    }
-
-    /**
-     * Returns the transitions registered to this State.
-     *
-     * @internal
-     * @return State[]
-     */
-    public function getTransitionsForUnitTests(): array
-    {
-        return $this->transitions;
     }
 }

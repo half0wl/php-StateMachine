@@ -16,43 +16,29 @@ final class StateMachine implements StateMachineInterface
     private State $current;
 
     /**
-     * Valid States in this StateMachine.
+     * Valid StateTransitions in this StateMachine.
      *
-     * @var State[]
+     * @var StateTransitionInterface[]
      */
-    private array $states;
+    private array $transitions = [];
 
     /**
      * Create a new StateMachine.
      *
-     * @param State[] $states
-     *   States for this StateMachine.
      * @param State $starting
-     *   The starting State for this StateMachine.
+     *   The starting State of this StateMachine.
+     * @param StateTransition[] $transitions
+     *   Valid StateTransitions in this StateMachine.
+     * @throws LengthException
+     *   If `$transitions` is empty.
      */
-    public function __construct(array $states, State $starting)
+    public function __construct(array $transitions, State $starting)
     {
-        if (empty($states) === true) {
-            throw new LengthException("Received an empty set of states");
+        if (empty($transitions)) {
+            throw new LengthException("Transitions cannot be empty");
         }
-        $this->states = $states;
-        $this->current = $starting;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function is(State $state): bool
-    {
-        return $this->current() === $state;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function can(State $next): bool
-    {
-        return $this->current()->canTransitionTo($next);
+        $this->setCurrent($starting);
+        $this->transitions = $transitions;
     }
 
     /**
@@ -66,7 +52,23 @@ final class StateMachine implements StateMachineInterface
     /**
      * {@inheritdoc}
      */
-    public function next(State $next): State
+    public function can(State $next): bool
+    {
+        return $this->findTransitionBySrc($this->current)->inDst($next);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function is(State $state): bool
+    {
+        return $this->current() === $state;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function transition(State $next): void
     {
         if (!$this->can($next)) {
             $err = sprintf(
@@ -77,14 +79,44 @@ final class StateMachine implements StateMachineInterface
             throw new RuntimeException($err);
         }
         $this->setCurrent($next);
-        return $this->current();
     }
 
     /**
      * Sets the current State to `$to`.
+     *
+     * @param State $to
      */
     private function setCurrent(State $to): void
     {
         $this->current = $to;
+    }
+
+    /**
+     * Returns the transition associated with `$src`.
+     *
+     * @param State $src
+     * @return StateTransition
+     * @throws DomainException
+     *   If the transition does not exist for the given `$src`.
+     */
+    private function findTransitionBySrc(State $src): StateTransition
+    {
+        $result = array_reduce(
+            $this->transitions,
+            function ($carry, $obj) {
+                return $carry ?? (
+                    (string)$obj->src() === (string)$this->current
+                        ? $obj
+                        : $carry
+                );
+            },
+            null,
+        );
+        if ($result === null) {
+            throw new DomainException(
+                "No transition registered for state '" . (string)$src . "'"
+            );
+        }
+        return $result;
     }
 }

@@ -7,14 +7,10 @@ namespace Rc\StateMachine;
 interface StateMachineInterface
 {
     /**
-     * Is the current State equal to `$state`?
-     *
-     * @param State $state
-     *   State to compare the current State against.
-     * @return bool
-     *   True if current State is equal to `$state`, False otherwise.
+     * @return State
+     *   The current State of the StateMachine.
      */
-    public function is(State $state): bool;
+    public function current(): State;
 
     /**
      * Can we transition from the current State to the `$next` State?
@@ -28,10 +24,14 @@ interface StateMachineInterface
     public function can(State $next): bool;
 
     /**
-     * @return State
-     *   The current State of the StateMachine.
+     * Is the current State equal to `$state`?
+     *
+     * @param State $state
+     *   State to compare the current State against.
+     * @return bool
+     *   True if current State is equal to `$state`, False otherwise.
      */
-    public function current(): State;
+    public function is(State $state): bool;
 
     /**
      * Transition the StateMachine to the `$next` State, returning the `$next`
@@ -41,8 +41,6 @@ interface StateMachineInterface
      *   Next State to transition the StateMachine to.
      * @throws \RuntimeException
      *   If `$next` is not a valid transition from current.
-     * @return State
-     *   The State that was transitioned to.
      */
-    public function next(State $next): State;
+    public function transition(State $next): void;
 }
