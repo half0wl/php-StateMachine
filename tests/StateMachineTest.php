@@ -4,166 +4,165 @@ declare(strict_types=1);
 
 namespace Rc\StateMachine;
 
+use DomainException;
 use RuntimeException;
 use LengthException;
-use DomainException;
 
 /**
  * @covers Rc\StateMachine\StateMachine
  */
 class StateMachineTest extends \PHPUnit\Framework\TestCase
 {
-    private const TRAFFIC_LIGHT_GREEN = "green";
-    private const TRAFFIC_LIGHT_YELLOW = "yellow";
-    private const TRAFFIC_LIGHT_RED = "red";
-    private const TRAFFIC_LIGHTS = [
-        self::TRAFFIC_LIGHT_GREEN => [
-            self::TRAFFIC_LIGHT_YELLOW,
-        ],
-        self::TRAFFIC_LIGHT_YELLOW => [
-            self::TRAFFIC_LIGHT_RED,
-        ],
-        self::TRAFFIC_LIGHT_RED => [
-            self::TRAFFIC_LIGHT_GREEN,
-        ],
-    ];
+    private State $green;
+    private State $yellow;
+    private State $red;
+    private StateTransition $greenToYellow;
+    private StateTransition $yellowToRedGreen;
+    private StateTransition $redToGreen;
 
-    public function testConstructWithValidParams(): void
+    public function setUp(): void
     {
-        $sm = new StateMachine(validTransitions: self::TRAFFIC_LIGHTS, starting: self::TRAFFIC_LIGHT_GREEN);
-        $this->assertEquals(
-            $sm->current(),
-            self::TRAFFIC_LIGHT_GREEN,
-            "Starting state should be green",
+        $this->green = new State("green");
+        $this->yellow = new State("yellow");
+        $this->red = new State("red");
+        $this->greenToYellow = new StateTransition(
+            $this->green,
+            [$this->yellow],
         );
-        $this->assertTrue(
-            $sm->is(self::TRAFFIC_LIGHT_GREEN),
-            "Starting state should be green",
+        // This is a "special" traffic light that can go from yellow to
+        // green :D
+        $this->yellowToRedGreen = new StateTransition(
+            $this->yellow,
+            [$this->red, $this->green],
         );
+        $this->redToGreen = new StateTransition(
+            $this->red,
+            [$this->green],
+        );
+    }
+
+    public function testConstructOk(): void
+    {
+        $sm = new StateMachine([$this->yellowToRedGreen], $this->green);
+
+        $this->assertInstanceOf(StateMachineInterface::class, $sm);
+        $this->assertEquals($sm->current(), $this->green);
     }
 
     public function testConstructWithEmptyTransitionsThrows(): void
     {
         $this->expectException(LengthException::class);
-        $sm = new StateMachine([], "foo");
+        $sm = new StateMachine([], new State("blah"));
     }
 
-    public function testConstructWithEmptyStartingStateThrows(): void
+    public function testCurrent(): void
     {
-        $this->expectException(DomainException::class);
-        /** @phpstan-ignore-next-line */
-        $sm = new StateMachine(self::TRAFFIC_LIGHTS, "");
+        $sm = new StateMachine(
+            transitions: [
+                $this->greenToYellow,
+                $this->redToGreen,
+            ],
+            starting: $this->green,
+        );
+        $this->assertEquals($sm->current(), $this->green);
     }
 
-    public function testConstructOnUndefinedStartingStateThrows(): void
+    public function testCan(): void
     {
-        $this->expectException(DomainException::class);
-        $sm = new StateMachine(self::TRAFFIC_LIGHTS, "Foobar");
+        $sm = new StateMachine(
+            transitions: [
+                $this->greenToYellow,
+                $this->redToGreen,
+            ],
+            starting: $this->green,
+        );
+        assert($sm->current() === $this->green);
+        $this->assertTrue($sm->can($this->yellow));
+        $this->assertFalse($sm->can($this->red));
     }
 
-    public function testCanStayInSameState(): void
+    public function testIs(): void
     {
-        $sm = new StateMachine(self::TRAFFIC_LIGHTS, self::TRAFFIC_LIGHT_GREEN);
-        assert($sm->is(self::TRAFFIC_LIGHT_GREEN));
-        assert($sm->current() === self::TRAFFIC_LIGHT_GREEN);
-
-        $this->assertTrue(
-            $sm->can(self::TRAFFIC_LIGHT_GREEN),
-            "Should be able to stay in the same state",
+        $sm = new StateMachine(
+            transitions: [
+                $this->greenToYellow,
+                $this->redToGreen,
+            ],
+            starting: $this->green,
         );
-        $sm->next(self::TRAFFIC_LIGHT_GREEN);
-        $this->assertTrue(
-            $sm->can(self::TRAFFIC_LIGHT_GREEN),
-            "Should stay in the same state",
-        );
-        $this->assertTrue(
-            $sm->is(self::TRAFFIC_LIGHT_GREEN),
-            "Should stay in the same state",
-        );
-        $this->assertEquals(
-            $sm->current(),
-            self::TRAFFIC_LIGHT_GREEN,
-            "Should stay in the same state",
-        );
+        $this->assertTrue($sm->is($this->green));
+        $this->assertFalse($sm->is($this->yellow));
     }
 
-    public function testValidTransitions(): void
+    public function testValidTransitionsOk(): void
     {
-        // Starting: TRAFFIC_LIGHT_GREEN
-        $sm = new StateMachine(self::TRAFFIC_LIGHTS, self::TRAFFIC_LIGHT_GREEN);
-        assert($sm->current() === self::TRAFFIC_LIGHT_GREEN);
-
-        // Green -> Yellow
-        $this->assertTrue(
-            $sm->can(self::TRAFFIC_LIGHT_YELLOW),
-            "Should be able to transition to next valid state",
-        );
-        $sm->next(self::TRAFFIC_LIGHT_YELLOW);
-        $this->assertEquals(
-            $sm->current(),
-            self::TRAFFIC_LIGHT_YELLOW,
-            "Should have transitioned to next valid state",
-        );
-        $this->assertTrue(
-            $sm->is(self::TRAFFIC_LIGHT_YELLOW),
-            "Should have transitioned to next valid state",
+        $sm = new StateMachine(
+            transitions: [
+                $this->greenToYellow,
+                $this->yellowToRedGreen,
+                $this->redToGreen,
+            ],
+            starting: $this->green,
         );
 
-        // Yellow -> Red
-        $this->assertTrue(
-            $sm->can(self::TRAFFIC_LIGHT_RED),
-            "Should be able to transition to next state",
-        );
-        $sm->next(self::TRAFFIC_LIGHT_RED);
-        $this->assertEquals(
-            $sm->current(),
-            self::TRAFFIC_LIGHT_RED,
-            "Should have transitioned to next state",
-        );
-        $this->assertTrue(
-            $sm->is(self::TRAFFIC_LIGHT_RED),
-            "Should have transitioned to next state",
-        );
+        assert($sm->current() === $this->green);
 
-        // Red -> Green
-        $this->assertTrue(
-            $sm->can(self::TRAFFIC_LIGHT_GREEN),
-            "Should be able to transition to next state",
-        );
-        $sm->next(self::TRAFFIC_LIGHT_GREEN);
-        $this->assertEquals(
-            $sm->current(),
-            self::TRAFFIC_LIGHT_GREEN,
-            "Should have transitioned to next state",
-        );
-        $this->assertTrue(
-            $sm->is(self::TRAFFIC_LIGHT_GREEN),
-            "Should have transitioned to next state",
-        );
+        // Green->Yellow
+        $sm->transition($this->yellow);
+        $this->assertEquals($sm->current(), $this->yellow);
+
+        // Yellow->Green
+        $sm->transition($this->green);
+        $this->assertEquals($sm->current(), $this->green);
+
+        // Green->Yellow
+        $sm->transition($this->yellow);
+        $this->assertEquals($sm->current(), $this->yellow);
+
+        // Yellow->Red
+        $sm->transition($this->red);
+        $this->assertEquals($sm->current(), $this->red);
+
+        // Red->Green
+        $sm->transition($this->green);
+        $this->assertEquals($sm->current(), $this->green);
     }
 
-    public function testEmptyTransitionThrows(): void
+    public function testInvalidTransitionIsBlocked(): void
     {
-        // Starting: TRAFFIC_LIGHT_GREEN
-        $sm = new StateMachine(self::TRAFFIC_LIGHTS, self::TRAFFIC_LIGHT_GREEN);
-        assert($sm->current() === self::TRAFFIC_LIGHT_GREEN);
-        $this->expectException(DomainException::class);
-        /** @phpstan-ignore-next-line */
-        $sm->next("");
-    }
-
-    public function testInvalidTransitionThrows(): void
-    {
-        // Starting: TRAFFIC_LIGHT_GREEN
-        $sm = new StateMachine(self::TRAFFIC_LIGHTS, self::TRAFFIC_LIGHT_GREEN);
-        assert($sm->current() === self::TRAFFIC_LIGHT_GREEN);
-
-        // Green -> Red, illegal
-        $this->assertFalse(
-            $sm->can(self::TRAFFIC_LIGHT_RED),
-            "Should not be able to transition to next invalid state",
+        $sm = new StateMachine(
+            transitions: [
+                $this->greenToYellow,
+                $this->redToGreen,
+            ],
+            starting: $this->green,
         );
+
+        assert($sm->current() === $this->green);
+
+        // Green->Red is a illegal state transition
         $this->expectException(RuntimeException::class);
-        $sm->next(self::TRAFFIC_LIGHT_RED);
+        $sm->transition($this->red);
+    }
+
+    public function testUnregisteredTransitionThrows(): void
+    {
+        $sm = new StateMachine(
+            transitions: [
+                $this->greenToYellow,
+                // Intentionally commented out:
+                //   $this->yellowToRedGreen,
+                $this->redToGreen,
+            ],
+            starting: $this->green,
+        );
+
+        assert($sm->current() === $this->green);
+        $sm->transition($this->yellow);
+        assert($sm->current() === $this->yellow);
+
+        // Error because `$this->yellowToRedGreen` is not registered
+        $this->expectException(DomainException::class);
+        $sm->transition($this->green);
     }
 }

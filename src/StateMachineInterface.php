@@ -7,38 +7,40 @@ namespace Rc\StateMachine;
 interface StateMachineInterface
 {
     /**
-     * @return non-empty-string
-     *   The current state of the StateMachine.
+     * @return State
+     *   The current State of the StateMachine.
      */
-    public function current(): string;
+    public function current(): State;
 
     /**
-     * Is current() equal to $state?
+     * Can we transition from the current State to the `$next` State?
      *
-     * @param non-empty-string $state
-     *   State to compare current() against.
+     * @param State $next
+     *   State to check whether it's a valid transition from current State.
+     * @return bool
+     *   True if transitioning from current State to `$next` State is allowed,
+     *   False otherwise.
      */
-    public function is(string $state): bool;
+    public function can(State $next): bool;
 
     /**
-     * Can we transition from current() to $next?
-     * @NOTE It's possible for the StateMachine to remain in its current state,
-     * so this MUST return true if `current() === $next`.
+     * Is the current State equal to `$state`?
      *
-     * @param non-empty-string $next
-     *   State to check if it's a valid transition from current().
+     * @param State $state
+     *   State to compare the current State against.
+     * @return bool
+     *   True if current State is equal to `$state`, False otherwise.
      */
-    public function can(string $next): bool;
+    public function is(State $state): bool;
 
     /**
-     * Transition the StateMachine to the $next state.
+     * Transition the StateMachine to the `$next` State, returning the `$next`
+     * State.
      *
-     * @param non-empty-string $next
-     *   Next state to transition to.
-     * @throws \DomainException
-     *   If $next is an empty string.
+     * @param State $next
+     *   Next State to transition the StateMachine to.
      * @throws \RuntimeException
-     *   If $next is not a valid transition from current().
+     *   If `$next` is not a valid transition from current.
      */
-    public function next(string $next): void;
+    public function transition(State $next): void;
 }

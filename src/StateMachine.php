@@ -11,79 +11,56 @@ use DomainException;
 final class StateMachine implements StateMachineInterface
 {
     /**
-     * @var non-empty-string
-     *   Holds the current state of the StateMachine.
+     * The current State of this StateMachine.
      */
-    private string $currentState;
+    private State $current;
 
     /**
-     * @param array<string, array<string>> $validTransitions
-     *   Valid transitions. Array should be in the shape of:
-     *   `[ current_state => [ allowed_transitions_from_current_state ], ... ]`,
-     *   i.e. the values are states that the key can transit to.
+     * Valid StateTransitions in this StateMachine.
      *
-     *   E.g. a traffic light can go from "green" to "yellow" to "red," and
-     *   back to "green," but it cannot go from "green" to "red" immediately,
-     *   or "red" to "yellow". We can define the valid transitions as:
-     *   ```php
-     *   [
-     *     "green" => [
-     *       "yellow"
-     *     ],
-     *     "yellow" => [
-     *       "red",
-     *     ],
-     *     "red" => [
-     *       "green",
-     *     ],
-     *   ]
-     *   ```
-     *
-     * @param non-empty-string $starting
-     *   The starting state of the StateMachine.
-     *
-     * @throws \LengthException
-     *   If $validTransitions is an empty array.
-     *
-     * @throws \DomainException
-     *   If $starting is an empty string, or undefined in $validTransitions.
+     * @var StateTransitionInterface[]
      */
-    public function __construct(
-        private array $validTransitions,
-        string $starting,
-    ) {
-        if (count($validTransitions) <= 0) {
-            throw new LengthException('validTransitions must not be empty');
-        }
-        /**
-         * @phpstan-ignore-next-line
-         * This comparison results in a phpstan error because $starting is
-         * typehinted as a non-empty-string.
-         */
-        if ('' === $starting) {
-            throw new DomainException('Starting state must not be empty');
-        }
-        if (!in_array($starting, array_keys($validTransitions), true)) {
-            throw new DomainException(
-                'Starting state must be defined in validTransitions'
-            );
-        }
-        // @TODO Further validation of validTransitions shape
-        $this->currentState = $starting;
-    }
+    private array $transitions = [];
 
     /**
-     * {@inheritdoc}
+     * Create a new StateMachine.
+     *
+     * @param State $starting
+     *   The starting State of this StateMachine.
+     * @param StateTransition[] $transitions
+     *   Valid StateTransitions in this StateMachine.
+     * @throws LengthException
+     *   If `$transitions` is empty.
      */
-    public function current(): string
+    public function __construct(array $transitions, State $starting)
     {
-        return $this->currentState;
+        if (empty($transitions)) {
+            throw new LengthException("Transitions cannot be empty");
+        }
+        $this->setCurrent($starting);
+        $this->transitions = $transitions;
     }
 
     /**
      * {@inheritdoc}
      */
-    public function is(string $state): bool
+    public function current(): State
+    {
+        return $this->current;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function can(State $next): bool
+    {
+        return $this->findTransitionBySrc($this->current)->inDst($next);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function is(State $state): bool
     {
         return $this->current() === $state;
     }
@@ -91,36 +68,55 @@ final class StateMachine implements StateMachineInterface
     /**
      * {@inheritdoc}
      */
-    public function can(string $next): bool
+    public function transition(State $next): void
     {
-        if ($next === $this->current()) {
-            return true;
-        }
-        $validTransitions = $this->validTransitions[$this->current()];
-        return in_array($next, $validTransitions, true);
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function next(string $next): void
-    {
-        /**
-         * @phpstan-ignore-next-line
-         * This comparison results in a phpstan error because $next is
-         * typehinted as a non-empty-string.
-         */
-        if ('' === $next) {
-            throw new DomainException('Next state must not be empty');
-        }
         if (!$this->can($next)) {
             $err = sprintf(
                 'Illegal state transition: %s -> %s',
-                $this->current(),
-                $next,
+                (string)$this->current(),
+                (string)$next,
             );
             throw new RuntimeException($err);
         }
-        $this->currentState = $next;
+        $this->setCurrent($next);
+    }
+
+    /**
+     * Sets the current State to `$to`.
+     *
+     * @param State $to
+     */
+    private function setCurrent(State $to): void
+    {
+        $this->current = $to;
+    }
+
+    /**
+     * Returns the transition associated with `$src`.
+     *
+     * @param State $src
+     * @return StateTransition
+     * @throws DomainException
+     *   If the transition does not exist for the given `$src`.
+     */
+    private function findTransitionBySrc(State $src): StateTransition
+    {
+        $result = array_reduce(
+            $this->transitions,
+            function ($carry, $obj) {
+                return $carry ?? (
+                    (string)$obj->src() === (string)$this->current
+                        ? $obj
+                        : $carry
+                );
+            },
+            null,
+        );
+        if ($result === null) {
+            throw new DomainException(
+                "No transition registered for state '" . (string)$src . "'"
+            );
+        }
+        return $result;
     }
 }
